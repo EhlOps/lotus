@@ -421,15 +421,22 @@ def status():
 
         click.echo("=== Lotus Status ===\n")
         for label, (cmd, fmt) in sections.items():
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            items = yaml.safe_load(result.stdout) or []
-            click.echo(f"{label}: {len(items)}")
-            for item in items:
-                click.echo(fmt(item))
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                items = yaml.safe_load(result.stdout) or []
+                click.echo(f"{label}: {len(items)}")
+                for item in items:
+                    click.echo(fmt(item))
+            except FileNotFoundError:
+                click.echo(f"{label}: (gh CLI not found)")
+            except subprocess.CalledProcessError as e:
+                stderr = e.stderr.strip()
+                msg = stderr.splitlines()[0] if stderr else "gh command failed"
+                click.echo(f"{label}: (error — {msg})")
             click.echo()
 
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        click.echo("Error: gh CLI not available or not authenticated.")
+    except Exception as e:
+        click.echo(f"Error: {e}")
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
