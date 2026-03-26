@@ -1,0 +1,41 @@
+name: Lotus Queue Drain
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: {{ "${{ secrets.LOTUS_BOT_TOKEN }}" }}
+    steps:
+      - name: Dequeue oldest issue
+        run: |
+          # Find oldest queued issue (preserves type label)
+          ISSUE=$(gh issue list --label "lotus:queued" --json number,labels \
+            --jq 'sort_by(.number) | .[0]' 2>/dev/null || echo "")
+
+          [ -z "${ISSUE}" ] || [ "${ISSUE}" = "null" ] && exit 0
+
+          NUM=$(echo "${ISSUE}" | jq -r '.number')
+
+          # Find the type label (lotus:feature, lotus:bugfix, etc.)
+          TYPE_LABEL=$(echo "${ISSUE}" | jq -r \
+            '.labels[].name | select(startswith("lotus:") and . != "lotus:queued" and . != "lotus:needs-human")' \
+            | head -1)
+
+          if [ -z "${TYPE_LABEL}" ]; then
+            echo "No type label found on #${NUM}. Skipping."
+            exit 0
+          fi
+
+          echo "Dequeuing #${NUM} (${TYPE_LABEL})"
+
+          # Remove queued label
+          gh issue label ${NUM} --remove "lotus:queued"
+
+          # Remove and re-add type label to trigger dispatch
+          gh issue label ${NUM} --remove "${TYPE_LABEL}"
+          sleep 2
+          gh issue label ${NUM} --add "${TYPE_LABEL}"

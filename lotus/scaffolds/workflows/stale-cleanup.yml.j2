@@ -1,0 +1,42 @@
+name: Lotus Stale Cleanup
+on:
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: {{ "${{ secrets.LOTUS_BOT_TOKEN }}" }}
+    steps:
+      - uses: actions/stale@v9
+        with:
+          stale-pr-message: "This Lotus PR has been open 7 days without merge. Closing."
+          close-pr-message: "Closed due to staleness. Re-label the issue to retry."
+          days-before-pr-stale: 7
+          days-before-pr-close: 1
+          only-labels: "lotus:ai-generated"
+          delete-branch: true
+
+      # Re-label orphaned issues from closed stale PRs
+      - name: Handle orphaned issues
+        run: |
+          # Find recently closed PRs with lotus:ai-generated label
+          gh pr list --state closed --label "lotus:ai-generated" --json number,body,closedAt \
+            --jq '.[] | select(.closedAt > (now - 86400 | strftime("%Y-%m-%dT%H:%M:%SZ")))' \
+            2>/dev/null | while read -r PR_JSON; do
+
+            BODY=$(echo "${PR_JSON}" | jq -r '.body')
+            # Extract issue number from "Closes #N"
+            ISSUE_NUM=$(echo "${BODY}" | grep -oP '(?<=Closes #)\d+' | head -1)
+
+            if [ -n "${ISSUE_NUM}" ]; then
+              STATE=$(gh issue view ${ISSUE_NUM} --json state --jq '.state' 2>/dev/null || echo "")
+              if [ "${STATE}" = "OPEN" ]; then
+                gh issue comment ${ISSUE_NUM} \
+                  --body "Lotus PR was closed (stale). Re-label to retry, or resolve manually."
+                gh issue label ${ISSUE_NUM} --add "lotus:needs-human" 2>/dev/null || true
+              fi
+            fi
+          done

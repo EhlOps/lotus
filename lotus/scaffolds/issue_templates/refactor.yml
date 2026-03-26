@@ -1,0 +1,40 @@
+name: Refactor
+description: Request a code refactor (no behavior changes)
+title: "refactor: "
+labels: ["lotus:refactor"]
+body:
+  - type: textarea
+    id: target
+    attributes:
+      label: Target Code
+      description: Which files, functions, or modules should be refactored?
+      placeholder: |
+        - src/foo/bar.py — the `process_items` function
+        - src/utils/helpers.py — the entire module
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be improved? Be specific.
+      placeholder: |
+        - Reduce cyclomatic complexity (currently 12, target ≤ 5)
+        - Extract the retry logic into a reusable helper
+        - Replace the nested conditionals with early returns
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: |
+        What must NOT change? Tests are always the contract — list additional constraints here.
+      placeholder: |
+        - Public API signatures must remain identical
+        - Do not change test files
+        - Do not combine with unrelated cleanup
+    validations:
+      required: false

@@ -1,0 +1,50 @@
+name: Bug Fix
+description: Report a bug for Lotus to fix
+title: "fix: "
+labels: ["lotus:bugfix"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: What is broken? What is the unexpected behavior?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Call function X with argument Y
+        2. Observe Z
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happens? Include error messages or stack traces.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: |
+        Relevant files, code paths, or recent changes that may have caused this.
+      placeholder: |
+        - Likely in src/foo/bar.py around line 42
+        - Introduced in commit abc123 / PR #N
+    validations:
+      required: false

@@ -1,0 +1,39 @@
+name: Setup Lotus Environment
+description: Shared environment setup for CI and agent workflows
+
+runs:
+  using: composite
+  steps:
+    {% if project.language == "python" %}
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: pip
+
+    - run: |
+        pip install -r requirements.txt 2>/dev/null || true
+        pip install -r requirements-dev.txt 2>/dev/null || true
+        pip install pyyaml radon 2>/dev/null || true
+      shell: bash
+    {% elif project.language == "typescript" %}
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        cache: npm
+
+    - run: npm ci
+      shell: bash
+    {% elif project.language == "rust" %}
+    - uses: dtolnay/rust-toolchain@stable
+    - uses: Swatinem/rust-cache@v2
+
+    - run: cargo fetch
+      shell: bash
+    {% elif project.language == "go" %}
+    - uses: actions/setup-go@v5
+      with:
+        go-version: "1.22"
+
+    - run: go mod download
+      shell: bash
+    {% endif %}

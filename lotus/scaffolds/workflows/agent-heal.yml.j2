@@ -1,0 +1,97 @@
+name: Lotus Self-Heal
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+jobs:
+  heal:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      ANTHROPIC_API_KEY: {{ "${{ secrets.ANTHROPIC_API_KEY }}" }}
+      GH_TOKEN: {{ "${{ secrets.LOTUS_BOT_TOKEN }}" }}
+
+    steps:
+      - name: Check if Lotus PR
+        id: check
+        run: |
+          BRANCH="{{ "${{ github.event.workflow_run.head_branch }}" }}"
+          PR_LABELS=$(gh pr view "${BRANCH}" --json labels --jq '.labels[].name' 2>/dev/null || echo "")
+
+          if ! echo "${PR_LABELS}" | grep -q "lotus:ai-generated"; then
+            echo "Not a Lotus PR. Skipping."
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "skip=false" >> $GITHUB_OUTPUT
+          echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.skip != 'true'
+        with:
+          ref: {{ "${{ github.event.workflow_run.head_branch }}" }}
+          token: {{ "${{ secrets.LOTUS_BOT_TOKEN }}" }}
+          fetch-depth: 0
+
+      - name: Check heal count
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          echo "::add-mask::${ANTHROPIC_API_KEY}"
+          MAX_HEALS=$(python3 -c "
+          import yaml; c=yaml.safe_load(open('.lotus/config.yml'))
+          print(c['agents'].get('max_heal_attempts', 2))
+          ")
+          HEAL_COUNT=$(git tag -l "lotus-heal/${BRANCH}/*" | wc -l)
+
+          if [ $HEAL_COUNT -ge $MAX_HEALS ]; then
+            ISSUE_NUM=$(echo "${BRANCH}" | grep -oP '\d+' | head -1)
+            gh issue label ${ISSUE_NUM} --add "lotus:needs-human" 2>/dev/null || true
+            gh pr comment "${BRANCH}" --body "Self-heal failed after ${MAX_HEALS} attempts. Needs human review."
+            exit 1
+          fi
+
+          git tag "lotus-heal/${BRANCH}/${HEAL_COUNT}"
+          git push origin "lotus-heal/${BRANCH}/${HEAL_COUNT}"
+          echo "HEAL_ATTEMPT=$((HEAL_COUNT + 1))" >> $GITHUB_ENV
+
+      - name: Setup environment
+        if: steps.check.outputs.skip != 'true'
+        uses: ./.github/actions/setup-env
+
+      - name: Get CI failure logs
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          RUN_ID="{{ "${{ github.event.workflow_run.id }}" }}"
+          gh run view ${RUN_ID} --log-failed 2>/dev/null | tail -100 > /tmp/ci-errors.txt \
+            || echo "Could not retrieve CI logs" > /tmp/ci-errors.txt
+
+      - name: Heal
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          git config user.name "lotus-bot"
+          git config user.email "lotus-bot@users.noreply.github.com"
+
+          HEAL_PROMPT=$(cat .lotus/prompts/heal.md)
+          CI_ERRORS=$(cat /tmp/ci-errors.txt)
+
+          timeout 20m claude \
+            -p "${HEAL_PROMPT}
+
+          ${CI_ERRORS}" \
+            --allowedTools "Edit,Write,Bash,Read" \
+            --max-turns 30
+
+          # Determine type from branch
+          TYPE="feature"
+          echo "${BRANCH}" | grep -q "^fix/" && TYPE="bugfix"
+          echo "${BRANCH}" | grep -q "^refactor/" && TYPE="refactor"
+          echo "${BRANCH}" | grep -q "^chore/" && TYPE="chore"
+
+          python3 .lotus/validate.py "${TYPE}"
+          git add -A
+          git commit -m "fix: self-heal CI (attempt ${HEAL_ATTEMPT})"
+          git push origin HEAD

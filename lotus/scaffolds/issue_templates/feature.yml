@@ -1,0 +1,38 @@
+name: Feature
+description: Request a new feature for Lotus to implement
+title: "feat: "
+labels: ["lotus:feature"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What should be built? One paragraph describing the feature.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: List each criterion the agent must satisfy. One per line.
+      placeholder: |
+        - [ ] Users can do X
+        - [ ] Y returns Z when given input W
+        - [ ] Tests cover all criteria
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: |
+        Files, modules, APIs, or patterns the agent should know about.
+        Include anything not obvious from reading the code.
+      placeholder: |
+        - Relevant file: src/foo/bar.py
+        - Follow the pattern in src/baz/
+        - Avoid touching src/legacy/ (deprecated)
+    validations:
+      required: false

@@ -19,7 +19,8 @@ def get_repo_info() -> RepoInfo:
     # Get remote URL
     result = subprocess.run(
         ["git", "remote", "get-url", "origin"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         raise RuntimeError(
@@ -55,7 +56,8 @@ def get_repo_info() -> RepoInfo:
     if has_commits:
         branch_result = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         default_branch = branch_result.stdout.strip() or "main"
     else:
@@ -68,3 +70,4 @@ def get_repo_info() -> RepoInfo:
         default_branch=default_branch,
         has_commits=has_commits,
     )
+
