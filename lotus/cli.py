@@ -276,13 +276,13 @@ def init(language, test_cmd, lint_cmd, format_cmd, typecheck_cmd):
     click.echo("\n✓ Lotus initialized.\n")
     click.echo("Required secrets (run these now):")
     click.echo("  gh secret set ANTHROPIC_API_KEY")
-    click.echo(f"  gh secret set LOTUS_BOT_TOKEN")
+    click.echo("  gh secret set LOTUS_BOT_TOKEN")
     click.echo("")
     click.echo("To create LOTUS_BOT_TOKEN:")
     click.echo(
-        f"  https://github.com/settings/personal-access-tokens/new"
-        f"?repository_ids=&scopes=contents:write,issues:write,"
-        f"pull_requests:write,metadata:read"
+        "  https://github.com/settings/personal-access-tokens/new"
+        "?repository_ids=&scopes=contents:write,issues:write,"
+        "pull_requests:write,metadata:read"
     )
     click.echo("  Select: Only select repositories → your repo")
     click.echo(

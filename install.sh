@@ -46,16 +46,26 @@ fi
 echo "✓ git"
 
 # ── Install via pip ──
-if command -v pip &>/dev/null || command -v pip3 &>/dev/null; then
-    PIP=$(command -v pip3 || command -v pip)
-    echo "Installing Lotus via pip..."
-    "$PIP" install "git+https://github.com/${LOTUS_REPO}.git" --break-system-packages 2>/dev/null \
-      || "$PIP" install "git+https://github.com/${LOTUS_REPO}.git"
-    echo "✓ Lotus installed via pip"
+# Prefer system Python's pip over any activated venv to avoid stale pip versions.
+if [ -n "${VIRTUAL_ENV:-}" ]; then
+    PIP="$VIRTUAL_ENV/../../../bin/pip3"
+    [ -x "$PIP" ] || PIP=$(command -v pip3 || command -v pip)
 else
+    PIP=$(command -v pip3 || command -v pip)
+fi
+
+if [ -z "$PIP" ]; then
     echo "Error: pip required."
     exit 1
 fi
+
+echo "Upgrading pip..."
+"$PIP" install --upgrade pip --break-system-packages 2>/dev/null || "$PIP" install --upgrade pip
+
+echo "Installing Lotus via pip..."
+"$PIP" install "git+https://github.com/${LOTUS_REPO}.git" --break-system-packages 2>/dev/null \
+  || "$PIP" install "git+https://github.com/${LOTUS_REPO}.git"
+echo "✓ Lotus installed via pip"
 
 # ── Verify ──
 if command -v lotus &>/dev/null; then
