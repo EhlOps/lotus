@@ -271,7 +271,7 @@ def init(language, test_cmd, lint_cmd, format_cmd, typecheck_cmd):
     # ── Commit and push generated files before branch protection is applied ──
     click.echo("\nPushing generated files...")
     push_result = subprocess.run(
-        "git add -A && git commit -m 'chore: initialize Lotus' && git push",
+        'git add -A && git commit -m "chore: initialize Lotus" && git push',
         shell=True,
         capture_output=True,
         text=True,
