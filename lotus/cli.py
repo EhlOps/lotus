@@ -270,19 +270,25 @@ def init(language, test_cmd, lint_cmd, format_cmd, typecheck_cmd):
 
     # ── Commit and push generated files before branch protection is applied ──
     click.echo("\nPushing generated files...")
-    push_result = subprocess.run(
-        'git add -A && git commit -m "chore: initialize Lotus" && git push',
-        shell=True,
-        capture_output=True,
-        text=True,
-    )
-    if push_result.returncode == 0:
+    git_steps = [
+        (["git", "add", "-A"], "add"),
+        (["git", "commit", "-m", "\"chore: initialize Lotus\""], "commit"),
+        (["git", "push"], "push"),
+    ]
+    push_ok = True
+    for cmd, label in git_steps:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            click.echo(f"  ⚠ git {label} failed: {result.stderr.strip()}")
+            click.echo(
+                "    Commit and push manually before branch protection takes effect."
+            )
+            push_ok = False
+            break
+        else:
+            click.echo(cmd)
+    if push_ok:
         click.echo("  ✓ Files committed and pushed")
-    else:
-        click.echo(f"  ⚠ Push failed: {push_result.stderr.strip()}")
-        click.echo(
-            "    Commit and push manually before branch protection takes effect."
-        )
 
     # ── Configure branch protection ──
     click.echo("Configuring branch protection...")
@@ -290,21 +296,29 @@ def init(language, test_cmd, lint_cmd, format_cmd, typecheck_cmd):
 
     # ── Print next steps ──
     click.echo("\n✓ Lotus initialized.\n")
-    click.echo("Required secrets (run these now):")
-    click.echo("  gh secret set ANTHROPIC_API_KEY")
-    click.echo("  gh secret set LOTUS_BOT_TOKEN")
+    click.echo("Required secrets — set these before your first agent run:\n")
+
+    click.echo("1. ANTHROPIC_API_KEY")
+    click.echo("   a. Go to: https://console.anthropic.com/settings/keys")
+    click.echo("   b. Click 'Create Key', name it (e.g. 'lotus'), copy the value.")
+    click.echo("   c. Run:  gh secret set ANTHROPIC_API_KEY")
     click.echo("")
-    click.echo("To create LOTUS_BOT_TOKEN:")
+
+    click.echo("2. LOTUS_BOT_TOKEN")
     click.echo(
-        "  https://github.com/settings/personal-access-tokens/new"
-        "?repository_ids=&scopes=contents:write,issues:write,"
-        "pull_requests:write,metadata:read"
+        "   a. Go to: https://github.com/settings/personal-access-tokens/new"
     )
-    click.echo("  Select: Only select repositories → your repo")
-    click.echo(
-        "  Permissions: Contents (R+W), Issues (R+W), Pull requests (R+W), Metadata (R)"
-    )
+    click.echo("   b. Token name: lotus-bot  |  Expiration: your preference")
+    click.echo("   c. Repository access: Only select repositories → your repo")
+    click.echo("   d. Permissions:")
+    click.echo("        Contents        → Read and write")
+    click.echo("        Issues          → Read and write")
+    click.echo("        Pull requests   → Read and write")
+    click.echo("        Metadata        → Read-only (required)")
+    click.echo("   e. Click 'Generate token' and copy the value.")
+    click.echo("   f. Run:  gh secret set LOTUS_BOT_TOKEN")
     click.echo("")
+
     click.echo("Create your first issue using the Lotus templates in GitHub.")
 
 
