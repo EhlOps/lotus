@@ -268,6 +268,22 @@ def init(language, test_cmd, lint_cmd, format_cmd, typecheck_cmd):
     click.echo("\nCreating GitHub labels...")
     _create_labels()
 
+    # ── Commit and push generated files before branch protection is applied ──
+    click.echo("\nPushing generated files...")
+    push_result = subprocess.run(
+        "git add -A && git commit -m 'chore: initialize Lotus' && git push",
+        shell=True,
+        capture_output=True,
+        text=True,
+    )
+    if push_result.returncode == 0:
+        click.echo("  ✓ Files committed and pushed")
+    else:
+        click.echo(f"  ⚠ Push failed: {push_result.stderr.strip()}")
+        click.echo(
+            "    Commit and push manually before branch protection takes effect."
+        )
+
     # ── Configure branch protection ──
     click.echo("Configuring branch protection...")
     _configure_branch_protection(config, repo)
@@ -288,9 +304,6 @@ def init(language, test_cmd, lint_cmd, format_cmd, typecheck_cmd):
     click.echo(
         "  Permissions: Contents (R+W), Issues (R+W), Pull requests (R+W), Metadata (R)"
     )
-    click.echo("")
-    click.echo("Then commit and push:")
-    click.echo("  git add -A && git commit -m 'chore: initialize Lotus' && git push")
     click.echo("")
     click.echo("Create your first issue using the Lotus templates in GitHub.")
 
