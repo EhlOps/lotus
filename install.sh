@@ -49,8 +49,8 @@ echo "✓ git"
 if command -v pip &>/dev/null || command -v pip3 &>/dev/null; then
     PIP=$(command -v pip3 || command -v pip)
     echo "Installing Lotus via pip..."
-    $PIP install "git+https://github.com/${LOTUS_REPO}.git" --break-system-packages 2>/dev/null \
-      || $PIP install "git+https://github.com/${LOTUS_REPO}.git"
+    "$PIP" install "git+https://github.com/${LOTUS_REPO}.git" --break-system-packages 2>/dev/null \
+      || "$PIP" install "git+https://github.com/${LOTUS_REPO}.git"
     echo "✓ Lotus installed via pip"
 else
     echo "Error: pip required."

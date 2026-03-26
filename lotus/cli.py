@@ -38,6 +38,7 @@ def cli():
 # lotus doctor
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+
 @cli.command()
 def doctor():
     """Check prerequisites for Lotus."""
@@ -105,6 +106,7 @@ def _cmd_exists(cmd: str) -> bool:
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # lotus init
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 
 @cli.command()
 @click.option(
@@ -215,9 +217,7 @@ def init(language, test_cmd, lint_cmd, format_cmd, typecheck_cmd):
 
     # ── Write config ──
     config_path = repo_root / ".lotus" / "config.yml"
-    config_path.write_text(
-        yaml.dump(config, default_flow_style=False, sort_keys=False)
-    )
+    config_path.write_text(yaml.dump(config, default_flow_style=False, sort_keys=False))
     click.echo(f"  wrote {config_path}")
 
     # ── Render Jinja templates ──
@@ -285,8 +285,9 @@ def init(language, test_cmd, lint_cmd, format_cmd, typecheck_cmd):
         f"pull_requests:write,metadata:read"
     )
     click.echo("  Select: Only select repositories → your repo")
-    click.echo("  Permissions: Contents (R+W), Issues (R+W), "
-               "Pull requests (R+W), Metadata (R)")
+    click.echo(
+        "  Permissions: Contents (R+W), Issues (R+W), Pull requests (R+W), Metadata (R)"
+    )
     click.echo("")
     click.echo("Then commit and push:")
     click.echo("  git add -A && git commit -m 'chore: initialize Lotus' && git push")
@@ -298,11 +299,19 @@ def _create_labels():
     """Create all lotus:* labels in the GitHub repo."""
     for name, color, description in LABELS:
         result = subprocess.run(
-            ["gh", "label", "create", name,
-             "--color", color,
-             "--description", description,
-             "--force"],
-            capture_output=True, text=True,
+            [
+                "gh",
+                "label",
+                "create",
+                name,
+                "--color",
+                color,
+                "--description",
+                description,
+                "--force",
+            ],
+            capture_output=True,
+            text=True,
         )
         if result.returncode == 0:
             click.echo(f"  ✓ {name}")
@@ -313,6 +322,7 @@ def _create_labels():
 def _configure_branch_protection(config: dict, repo: RepoInfo):
     """Set branch protection rules via gh CLI."""
     import json
+
     protection = {
         "required_status_checks": {
             "strict": True,
@@ -323,12 +333,18 @@ def _configure_branch_protection(config: dict, repo: RepoInfo):
         "restrictions": None,
     }
     result = subprocess.run(
-        ["gh", "api",
-         f"repos/{repo.full_name}/branches/{repo.default_branch}/protection",
-         "--method", "PUT",
-         "--input", "-"],
+        [
+            "gh",
+            "api",
+            f"repos/{repo.full_name}/branches/{repo.default_branch}/protection",
+            "--method",
+            "PUT",
+            "--input",
+            "-",
+        ],
         input=json.dumps(protection),
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode == 0:
         click.echo("  ✓ Branch protection configured")
@@ -347,29 +363,58 @@ def _configure_branch_protection(config: dict, repo: RepoInfo):
 # lotus status
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+
 @cli.command()
 def status():
     """Show Lotus status: active agents, queue, recent PRs."""
     try:
         sections = {
             "Active agents": (
-                ["gh", "run", "list", "--workflow=agent-dispatch.yml",
-                 "--status=in_progress", "--json", "headBranch,startedAt"],
+                [
+                    "gh",
+                    "run",
+                    "list",
+                    "--workflow=agent-dispatch.yml",
+                    "--status=in_progress",
+                    "--json",
+                    "headBranch,startedAt",
+                ],
                 lambda r: f"  → {r['headBranch']} (started {r['startedAt']})",
             ),
             "Queued issues": (
-                ["gh", "issue", "list", "--label", "lotus:queued",
-                 "--json", "number,title"],
+                [
+                    "gh",
+                    "issue",
+                    "list",
+                    "--label",
+                    "lotus:queued",
+                    "--json",
+                    "number,title",
+                ],
                 lambda r: f"  → #{r['number']}: {r['title']}",
             ),
             "Open AI PRs": (
-                ["gh", "pr", "list", "--label", "lotus:ai-generated",
-                 "--json", "number,title,headRefName"],
+                [
+                    "gh",
+                    "pr",
+                    "list",
+                    "--label",
+                    "lotus:ai-generated",
+                    "--json",
+                    "number,title,headRefName",
+                ],
                 lambda r: f"  → #{r['number']}: {r['title']} ({r['headRefName']})",
             ),
             "Needs human help": (
-                ["gh", "issue", "list", "--label", "lotus:needs-human",
-                 "--json", "number,title"],
+                [
+                    "gh",
+                    "issue",
+                    "list",
+                    "--label",
+                    "lotus:needs-human",
+                    "--json",
+                    "number,title",
+                ],
                 lambda r: f"  → #{r['number']}: {r['title']}",
             ),
         }
@@ -390,6 +435,7 @@ def status():
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # lotus compact
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 
 @cli.command()
 def compact():
